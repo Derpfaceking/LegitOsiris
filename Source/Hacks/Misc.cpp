@@ -148,18 +148,6 @@ struct MiscConfig {
     std::string customHitSound;
     PurchaseList purchaseList;
 
-    struct Reportbot {
-        bool enabled = false;
-        bool textAbuse = false;
-        bool griefing = false;
-        bool wallhack = true;
-        bool aimbot = true;
-        bool other = true;
-        int target = 0;
-        int delay = 1;
-        int rounds = 1;
-    } reportbot;
-
     OffscreenEnemies offscreenEnemies;
 } miscConfig;
 
@@ -975,86 +963,6 @@ void Misc::oppositeHandKnife(FrameStage stage) noexcept
     }
 }
 
-static std::vector<std::uint64_t> reportedPlayers;
-static int reportbotRound;
-
-[[nodiscard]] static std::string generateReportString()
-{
-    std::string report;
-    if (miscConfig.reportbot.textAbuse)
-        report += "textabuse,";
-    if (miscConfig.reportbot.griefing)
-        report += "grief,";
-    if (miscConfig.reportbot.wallhack)
-        report += "wallhack,";
-    if (miscConfig.reportbot.aimbot)
-        report += "aimbot,";
-    if (miscConfig.reportbot.other)
-        report += "speedhack,";
-    return report;
-}
-
-[[nodiscard]] static bool isPlayerReported(std::uint64_t xuid)
-{
-    return std::ranges::find(std::as_const(reportedPlayers), xuid) != reportedPlayers.cend();
-}
-
-[[nodiscard]] static std::vector<std::uint64_t> getXuidsOfCandidatesToBeReported()
-{
-    std::vector<std::uint64_t> xuids;
-
-    for (int i = 1; i <= interfaces->engine->getMaxClients(); ++i) {
-        const auto entity = interfaces->entityList->getEntity(i);
-        if (!entity || entity == localPlayer.get())
-            continue;
-
-        if (miscConfig.reportbot.target != 2 && (localPlayer->isOtherEnemy(entity) ? miscConfig.reportbot.target != 0 : miscConfig.reportbot.target != 1))
-            continue;
-
-        if (PlayerInfo playerInfo; interfaces->engine->getPlayerInfo(i, playerInfo) && !playerInfo.fakeplayer)
-            xuids.push_back(playerInfo.xuid);
-    }
-
-    return xuids;
-}
-
-void Misc::runReportbot() noexcept
-{
-    if (!miscConfig.reportbot.enabled)
-        return;
-
-    if (!localPlayer)
-        return;
-
-    static auto lastReportTime = 0.0f;
-
-    if (lastReportTime + miscConfig.reportbot.delay > memory->globalVars->realtime)
-        return;
-
-    if (reportbotRound >= miscConfig.reportbot.rounds)
-        return;
-
-    for (const auto& xuid : getXuidsOfCandidatesToBeReported()) {
-        if (isPlayerReported(xuid))
-            continue;
-
-        if (const auto report = generateReportString(); !report.empty()) {
-            memory->submitReport(std::to_string(xuid).c_str(), report.c_str());
-            lastReportTime = memory->globalVars->realtime;
-            reportedPlayers.push_back(xuid);
-            return;
-        }
-    }
-
-    reportedPlayers.clear();
-    ++reportbotRound;
-}
-
-void Misc::resetReportbot() noexcept
-{
-    reportbotRound = 0;
-    reportedPlayers.clear();
-}
 
 void Misc::preserveKillfeed(bool roundStart) noexcept
 {
@@ -1494,32 +1402,6 @@ void Misc::drawGUI(bool contentOnly) noexcept
     }
     ImGui::PopID();
 
-    ImGui::Checkbox("Reportbot", &miscConfig.reportbot.enabled);
-    ImGui::SameLine();
-    ImGui::PushID("Reportbot");
-
-    if (ImGui::Button("..."))
-        ImGui::OpenPopup("");
-
-    if (ImGui::BeginPopup("")) {
-        ImGui::PushItemWidth(80.0f);
-        ImGui::Combo("Target", &miscConfig.reportbot.target, "Enemies\0Allies\0All\0");
-        ImGui::InputInt("Delay (s)", &miscConfig.reportbot.delay);
-        miscConfig.reportbot.delay = (std::max)(miscConfig.reportbot.delay, 1);
-        ImGui::InputInt("Rounds", &miscConfig.reportbot.rounds);
-        miscConfig.reportbot.rounds = (std::max)(miscConfig.reportbot.rounds, 1);
-        ImGui::PopItemWidth();
-        ImGui::Checkbox("Abusive Communications", &miscConfig.reportbot.textAbuse);
-        ImGui::Checkbox("Griefing", &miscConfig.reportbot.griefing);
-        ImGui::Checkbox("Wall Hacking", &miscConfig.reportbot.wallhack);
-        ImGui::Checkbox("Aim Hacking", &miscConfig.reportbot.aimbot);
-        ImGui::Checkbox("Other Hacking", &miscConfig.reportbot.other);
-        if (ImGui::Button("Reset"))
-            Misc::resetReportbot();
-        ImGui::EndPopup();
-    }
-    ImGui::PopID();
-
     if (ImGui::Button("Unhook"))
         hooks->uninstall();
 
@@ -1627,36 +1509,10 @@ static void from_json(const json& j, MiscConfig& m)
     read(j, "Kill sound", m.killSound);
     read<value_t::string>(j, "Custom Kill Sound", m.customKillSound);
     read<value_t::object>(j, "Purchase List", m.purchaseList);
-    read<value_t::object>(j, "Reportbot", m.reportbot);
     read(j, "Opposite Hand Knife", m.oppositeHandKnife);
     read<value_t::object>(j, "Preserve Killfeed", m.preserveKillfeed);
 }
 
-static void from_json(const json& j, MiscConfig::Reportbot& r)
-{
-    read(j, "Enabled", r.enabled);
-    read(j, "Target", r.target);
-    read(j, "Delay", r.delay);
-    read(j, "Rounds", r.rounds);
-    read(j, "Abusive Communications", r.textAbuse);
-    read(j, "Griefing", r.griefing);
-    read(j, "Wall Hacking", r.wallhack);
-    read(j, "Aim Hacking", r.aimbot);
-    read(j, "Other Hacking", r.other);
-}
-
-static void to_json(json& j, const MiscConfig::Reportbot& o, const MiscConfig::Reportbot& dummy = {})
-{
-    WRITE("Enabled", enabled);
-    WRITE("Target", target);
-    WRITE("Delay", delay);
-    WRITE("Rounds", rounds);
-    WRITE("Abusive Communications", textAbuse);
-    WRITE("Griefing", griefing);
-    WRITE("Wall Hacking", wallhack);
-    WRITE("Aim Hacking", aimbot);
-    WRITE("Other Hacking", other);
-}
 
 static void to_json(json& j, const PurchaseList& o, const PurchaseList& dummy = {})
 {
@@ -1765,7 +1621,6 @@ static void to_json(json& j, const MiscConfig& o)
     WRITE("Kill sound", killSound);
     WRITE("Custom Kill Sound", customKillSound);
     WRITE("Purchase List", purchaseList);
-    WRITE("Reportbot", reportbot);
     WRITE("Opposite Hand Knife", oppositeHandKnife);
     WRITE("Preserve Killfeed", preserveKillfeed);
 }

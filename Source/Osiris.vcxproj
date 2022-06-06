@@ -113,15 +113,8 @@
     <ClCompile Include="ConfigStructs.cpp" />
     <ClCompile Include="EventListener.cpp" />
     <ClCompile Include="GameData.cpp" />
-    <ClCompile Include="Hacks\Aimbot.cpp" />
-    <ClCompile Include="Hacks\AntiAim.cpp" />
-    <ClCompile Include="Hacks\Backtrack.cpp" />
-    <ClCompile Include="Hacks\Chams.cpp" />
     <ClCompile Include="Hacks\EnginePrediction.cpp" />
-    <ClCompile Include="Hacks\Glow.cpp" />
     <ClCompile Include="Hacks\Sound.cpp" />
-    <ClCompile Include="Hacks\StreamProofESP.cpp" />
-    <ClCompile Include="Hacks\Triggerbot.cpp" />
     <ClCompile Include="Hacks\Visuals.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="Hooks\MinHook.cpp" />
@@ -190,16 +183,9 @@
     <ClInclude Include="ConfigStructs.h" />
     <ClInclude Include="EventListener.h" />
     <ClInclude Include="GameData.h" />
-    <ClInclude Include="Hacks\Aimbot.h" />
-    <ClInclude Include="Hacks\AntiAim.h" />
-    <ClInclude Include="Hacks\Backtrack.h" />
-    <ClInclude Include="Hacks\Chams.h" />
     <ClInclude Include="Hacks\EnginePrediction.h" />
-    <ClInclude Include="Hacks\Glow.h" />
     <ClInclude Include="Hacks\Misc.h" />
     <ClInclude Include="Hacks\Sound.h" />
-    <ClInclude Include="Hacks\StreamProofESP.h" />
-    <ClInclude Include="Hacks\Triggerbot.h" />
     <ClInclude Include="Hacks\Visuals.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Hooks\MinHook.h" />
@@ -342,14 +328,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>false</SpectreMitigation>

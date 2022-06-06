@@ -30,17 +30,9 @@
 #include "Hooks.h"
 #include "Interfaces.h"
 #include "Memory.h"
-
-#include "Hacks/Aimbot.h"
-#include "Hacks/AntiAim.h"
-#include "Hacks/Backtrack.h"
-#include "Hacks/Chams.h"
 #include "Hacks/EnginePrediction.h"
-#include "Hacks/StreamProofESP.h"
-#include "Hacks/Glow.h"
 #include "Hacks/Misc.h"
 #include "Hacks/Sound.h"
-#include "Hacks/Triggerbot.h"
 #include "Hacks/Visuals.h"
 
 #include "InventoryChanger/InventoryChanger.h"
@@ -125,7 +117,6 @@ static void swapWindow(SDL_Window * window) noexcept
     ImGui::NewFrame();
 
     if (const auto& displaySize = ImGui::GetIO().DisplaySize; displaySize.x > 0.0f && displaySize.y > 0.0f) {
-        StreamProofESP::render();
         Misc::purchaseList();
         Misc::noscopeCrosshair(ImGui::GetBackgroundDrawList());
         Misc::recoilCrosshair(ImGui::GetBackgroundDrawList());
@@ -136,13 +127,8 @@ static void swapWindow(SDL_Window * window) noexcept
         Visuals::drawMolotovHull(ImGui::GetBackgroundDrawList());
         Misc::watermark();
 
-        Aimbot::updateInput();
         Visuals::updateInput();
-        StreamProofESP::updateInput();
         Misc::updateInput();
-        Triggerbot::updateInput();
-        Chams::updateInput();
-        Glow::updateInput();
 
         gui->handleToggle();
 
@@ -197,7 +183,6 @@ static bool STDCALL_CONV createMove(LINUX_ARGS(void* thisptr,) float inputSample
     Misc::fastStop(cmd);
     Misc::prepareRevolver(cmd);
     Visuals::removeShadows();
-    Misc::runReportbot();
     Misc::bunnyHop(cmd);
     Misc::autoStrafe(cmd);
     Misc::removeCrouchCooldown(cmd);
@@ -213,17 +198,9 @@ static bool STDCALL_CONV createMove(LINUX_ARGS(void* thisptr,) float inputSample
 
     EnginePrediction::run(cmd);
 
-    Aimbot::run(cmd);
-    Triggerbot::run(cmd);
-    Backtrack::run(cmd);
     Misc::edgejump(cmd);
     Misc::moonwalk(cmd);
     Misc::fastPlant(cmd);
-
-    if (!(cmd->buttons & (UserCmd::IN_ATTACK | UserCmd::IN_ATTACK2))) {
-        Misc::chokePackets(sendPacket);
-        AntiAim::run(cmd, previousViewAngles, currentViewAngles, sendPacket);
-    }
 
     auto viewAnglesDelta{ cmd->viewangles - previousViewAngles };
     viewAnglesDelta.normalize();
@@ -254,7 +231,6 @@ static void STDCALL_CONV doPostScreenEffects(LINUX_ARGS(void* thisptr,) void* pa
         Visuals::reduceFlashEffect();
         Visuals::updateBrightness();
         Visuals::remove3dSky();
-        Glow::render();
     }
     hooks->clientMode.callOriginal<void, WIN32_LINUX(44, 45)>(param);
 }
@@ -270,15 +246,13 @@ static float STDCALL_CONV getViewModelFov(LINUX_ARGS(void* thisptr)) noexcept
     return hooks->clientMode.callOriginal<float, WIN32_LINUX(35, 36)>() + additionalFov;
 }
 
-static void STDCALL_CONV drawModelExecute(LINUX_ARGS(void* thisptr,) void* ctx, void* state, const ModelRenderInfo& info, matrix3x4* customBoneToWorld) noexcept
+static void STDCALL_CONV drawModelExecute(LINUX_ARGS(void* thisptr, ) void* ctx, void* state, const ModelRenderInfo& info, matrix3x4* customBoneToWorld) noexcept
 {
     if (interfaces->studioRender->isForcedMaterialOverride())
         return hooks->modelRender.callOriginal<void, 21>(ctx, state, std::cref(info), customBoneToWorld);
 
     if (Visuals::removeHands(info.model->name) || Visuals::removeSleeves(info.model->name) || Visuals::removeWeapons(info.model->name))
         return;
-
-    if (static Chams chams; !chams.render(ctx, state, info, customBoneToWorld))
         hooks->modelRender.callOriginal<void, 21>(ctx, state, std::cref(info), customBoneToWorld);
 
     interfaces->studioRender->forcedMaterialOverride(nullptr);
@@ -294,7 +268,6 @@ static bool FASTCALL_CONV svCheatsGetBool(void* _this) noexcept
 
 static void STDCALL_CONV frameStageNotify(LINUX_ARGS(void* thisptr,) FrameStage stage) noexcept
 {
-    [[maybe_unused]] static auto backtrackInit = (Backtrack::init(), false);
 
     if (interfaces->engine->isConnected() && !interfaces->engine->isInGame())
         Misc::changeName(true, nullptr, 0.0f);
@@ -319,7 +292,6 @@ static void STDCALL_CONV frameStageNotify(LINUX_ARGS(void* thisptr,) FrameStage 
         Visuals::removeVisualRecoil(stage);
         Visuals::applyZoom(stage);
         Misc::fixAnimationLOD(stage);
-        Backtrack::update(stage);
     }
     InventoryChanger::run(stage);
 
@@ -694,7 +666,6 @@ void Hooks::uninstall() noexcept
 
     Netvars::restore();
 
-    Glow::clearCustomObjects();
     InventoryChanger::clearInventory();
 
 #ifdef _WIN32
